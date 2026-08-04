@@ -79,7 +79,6 @@
   .ga4-property{border-top:4px solid var(--property-color,var(--pb-primary));overflow:hidden}
   .ga4-trend-card{background:linear-gradient(145deg,#fff 0%,var(--pb-bg-soft) 150%)}
   .ga4-property-head{background:linear-gradient(90deg,color-mix(in srgb,var(--property-color) 8%,#fff),#fff 58%);border-bottom:1px solid var(--pb-line)}
-  .ga4-tool-section{border-top:1px solid var(--pb-line);padding-top:20px;margin-top:20px}
   .trend-value{font-variant-numeric:tabular-nums;letter-spacing:-.03em}
   @media (max-width:640px){
     .brand-bar{grid-template-columns:1fr;gap:10px}
@@ -998,9 +997,9 @@ const SERIES_DEFAULT = [
 ];
 
 const GA4_PROPERTIES = [
-  { id:"pixelbin", label:"Pixelbin (Console)", propertyId:"309592666", color:"#6933FA", days:PB_DAYS, tools:PIXELBIN_TOOLS, kpi:PB_KPI, trend:GA4_TRENDS.pixelbin },
-  { id:"wm", label:"WatermarkRemover.io", propertyId:"303254358", color:"#FF7340", days:WM_DAYS, tools:WM_TOOLS, kpi:WM_KPI, trend:GA4_TRENDS.wm },
-  { id:"um", label:"Upscale.media", propertyId:"298351464", color:"#0F9F85", days:UM_DAYS, tools:UM_TOOLS, kpi:UM_KPI, trend:GA4_TRENDS.um }
+  { id:"pixelbin", label:"Pixelbin (Console)", propertyId:"309592666", color:"#6933FA", kpi:PB_KPI, trend:GA4_TRENDS.pixelbin },
+  { id:"wm", label:"WatermarkRemover.io", propertyId:"303254358", color:"#FF7340", kpi:WM_KPI, trend:GA4_TRENDS.wm },
+  { id:"um", label:"Upscale.media", propertyId:"298351464", color:"#0F9F85", kpi:UM_KPI, trend:GA4_TRENDS.um }
 ];
 
 const GA4_TREND_METRICS = [
@@ -1075,7 +1074,7 @@ function ga4OverviewHtml(){
           <h2 class="text-lg font-bold">Audience and acquisition overview</h2>
           <p class="text-xs mt-1" style="color:var(--pb-sub)">MAU, average DAU, bounce rate and Organic Search sessions for all three properties across six complete calendar months. Headline cards are current through yesterday.</p>
         </div>
-        <div class="text-right text-xs" style="color:var(--pb-sub)">Tool-level dashboards continue beneath each property.</div>
+        <div class="text-right text-xs" style="color:var(--pb-sub)">Latest six complete calendar months.</div>
       </div>
     </div>
     ${GA4_PROPERTIES.map(property=>`
@@ -1101,14 +1100,6 @@ function ga4OverviewHtml(){
               <div class="h-52"><canvas id="ga4-trend-${property.id}-${metric.key}"></canvas></div>
             </div>`;
           }).join("")}
-        </div>
-        <div class="ga4-tool-section px-5 pb-5">
-          <div class="mb-4"><div class="text-[11px] uppercase tracking-wider font-semibold" style="color:${property.color}">Tool-wise dashboard</div><div class="text-xs mt-1" style="color:var(--pb-sub)">The same current-period tool funnels shown in the dedicated ${property.label} tab.</div></div>
-          <section class="card p-5 mb-4">
-            <h3 class="text-sm font-semibold mb-2 uppercase tracking-wider" style="color:var(--pb-sub)">Period totals</h3>
-            <div class="overflow-x-auto"><table class="kdb"><thead><tr><th>Tool / Flow</th><th>Source</th><th>Visits</th><th>Clicks</th><th>Generated</th><th>Failed</th><th>Gen / Visit</th><th>Fail rate</th></tr></thead><tbody id="ga4-sum-${property.id}"></tbody></table></div>
-          </section>
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="ga4-tools-${property.id}"></div>
         </div>
       </section>`).join("")}`;
 }
@@ -1218,13 +1209,7 @@ TABS.forEach((tab, ti)=>{
   appendToolCards(tab,grid,`chart-${tab.id}`);
 });
 
-GA4_PROPERTIES.forEach(property=>{
-  document.getElementById(`ga4-sum-${property.id}`).innerHTML=toolSummaryRowsHtml(property.tools);
-  appendToolCards(property,document.getElementById(`ga4-tools-${property.id}`),`ga4-tool-${property.id}`);
-});
-
 TABS.filter(tab=>!tab.isFailureTab&&!tab.isGa4Tab).forEach(tab=>buildToolCharts(tab,`chart-${tab.id}`));
-GA4_PROPERTIES.forEach(property=>buildToolCharts(property,`ga4-tool-${property.id}`));
 
 GA4_PROPERTIES.forEach(property=>{
   GA4_TREND_METRICS.forEach(metric=>{

@@ -171,7 +171,7 @@ const pctOf = (n,d)=> d ? ((n / d) * 100).toFixed(1) + "%" : "—";
    PROPERTY 1 — Pixelbin Production Console (309592666)
    Range: Apr 24 — May 4 (instrumentation rollout on Apr 20–24)
    ============================================================ */
-const PB_DAYS = ["08-01", "08-02", "08-03"];
+const PB_DAYS = ["08-01", "08-02", "08-03", "08-04", "08-05"];
 const pbBuild = makeBuilder(PB_DAYS);
 
 const PIXELBIN_TOOLS = [
@@ -179,10 +179,10 @@ const PIXELBIN_TOOLS = [
     name:"AI Image Editor", slug:"studio/ai-image-editor", color:"#3aa0ff",
     note:"GENERATION_* events filtered to studio/ai-image-editor. Visits = page_view filtered by GA4 content_group.",
     data:{
-      visits:    pbBuild([["20260801",5458],["20260802",6080],["20260803",5376]]),
-      clicks:    pbBuild([["20260801",2618],["20260802",2407],["20260803",2844]]),
-      generated: pbBuild([["20260801",2138],["20260802",1934],["20260803",2322]]),
-      failed:    pbBuild([["20260801",444],["20260802",438],["20260803",493]])
+      visits:    pbBuild([["20260801",5458],["20260802",6080],["20260803",5376],["20260804",6464],["20260805",5352]]),
+      clicks:    pbBuild([["20260801",2578],["20260802",2375],["20260803",2804],["20260804",2844],["20260805",3568]]),
+      generated: pbBuild([["20260801",2103],["20260802",1909],["20260803",2286],["20260804",2345],["20260805",2906]]),
+      failed:    pbBuild([["20260801",444],["20260802",436],["20260803",491],["20260804",468],["20260805",612]])
     },
     query: pbQuery("studio/ai-image-editor", "ai-image-editor", ["GENERATION_STARTED", "GENERATION_COMPLETED", "GENERATION_FAILED"])
   },
@@ -190,10 +190,10 @@ const PIXELBIN_TOOLS = [
     name:"Img-to-Img Playground", slug:"IMG_TO_IMG_*", color:"#7c5cff",
     note:"Dedicated event prefix. No URL filter needed.",
     data:{
-      visits:    pbBuild([["20260801",14661],["20260802",13981],["20260803",16336]]),
-      clicks:    pbBuild([["20260801",12483],["20260802",12062],["20260803",13809]]),
-      generated: pbBuild([["20260801",6316],["20260802",5994],["20260803",7070]]),
-      failed:    pbBuild([["20260801",2447],["20260802",2396],["20260803",2610]])
+      visits:    pbBuild([["20260801",14661],["20260802",13981],["20260803",16336],["20260804",14178],["20260805",14427]]),
+      clicks:    pbBuild([["20260801",12483],["20260802",12062],["20260803",13812],["20260804",11927],["20260805",12531]]),
+      generated: pbBuild([["20260801",6316],["20260802",5994],["20260803",7083],["20260804",6131],["20260805",6477]]),
+      failed:    pbBuild([["20260801",2447],["20260802",2396],["20260803",2711],["20260804",2147],["20260805",2189]])
     },
     query: pbEventQuery(["IMG_TO_IMG_PAGE_VIEW", "IMG_TO_IMG_GENERATE_CLICKED", "IMG_TO_IMG_TRANSFORMATION_SUCCESS", "IMG_TO_IMG_TRANSFORMATION_FAILED"])
   },
@@ -202,8 +202,8 @@ const PIXELBIN_TOOLS = [
     note:"pagePath contains mini-studio - APPLY_TRANSFORMATION_CLICK - DOWNLOAD_SINGLE.",
     data:{
       visits:    pbBuild([]),
-      clicks:    pbBuild([["20260801",153],["20260802",164],["20260803",208]]),
-      generated: pbBuild([["20260801",78],["20260802",86],["20260803",124]]),
+      clicks:    pbBuild([["20260801",143],["20260802",153],["20260803",194],["20260804",184],["20260805",244]]),
+      generated: pbBuild([["20260801",73],["20260802",79],["20260803",116],["20260804",108],["20260805",111]]),
       failed:    pbBuild([])
     },
     query: pbQuery("mini-studio", "mini-studio", ["APPLY_TRANSFORMATION_CLICK", "DOWNLOAD_SINGLE", "VALIDATION_ERROR"])
@@ -212,10 +212,10 @@ const PIXELBIN_TOOLS = [
     name:"Dynamic Apps - Image", slug:"DYNAMIC_APP_TRANSFORMATION_*", color:"#a78bfa",
     note:"Per-org free apps. Visit ~= FILE_UPLOAD_SUCCESS. Failed = upload + transform fail.",
     data:{
-      visits:    pbBuild([["20260801",12823],["20260802",13020],["20260803",13612]]),
-      clicks:    pbBuild([["20260801",2306],["20260802",2296],["20260803",2333]]),
-      generated: pbBuild([["20260801",1883],["20260802",1881],["20260803",1841]]),
-      failed:    pbBuild([["20260801",1365],["20260802",1379],["20260803",1114]])
+      visits:    pbBuild([["20260801",12823],["20260802",13020],["20260803",13612],["20260804",13220],["20260805",13859]]),
+      clicks:    pbBuild([["20260801",2306],["20260802",2296],["20260803",2454],["20260804",2425],["20260805",2386]]),
+      generated: pbBuild([["20260801",1883],["20260802",1881],["20260803",1982],["20260804",2010],["20260805",1943]]),
+      failed:    pbBuild([["20260801",1365],["20260802",1379],["20260803",1217],["20260804",1214],["20260805",1306]])
     },
     query: pbEventQuery(["DYNAMIC_APP_FILE_UPLOAD_SUCCESS", "DYNAMIC_APP_TRANSFORMATION_TRIGGERED", "DYNAMIC_APP_TRANSFORMATION_POLLING_SUCCESS", "DYNAMIC_APP_TRANSFORMATION_POLLING_SUCCE", "DYNAMIC_APP_TRANSFORMATION_POLLING_FAILED", "DYNAMIC_APP_TRANSFORMATION_FAILED", "DYNAMIC_APP_FILE_UPLOAD_FAILED"])
   },
@@ -223,10 +223,10 @@ const PIXELBIN_TOOLS = [
     name:"Dynamic Apps - Video", slug:"DYNAMIC_APP_VIDEO_*", color:"#f59e0b",
     note:"Same per-org free-property apps - video tools.",
     data:{
-      visits:    pbBuild([["20260801",12823],["20260802",13020],["20260803",13612]]),
-      clicks:    pbBuild([["20260801",4254],["20260802",4536],["20260803",4373]]),
-      generated: pbBuild([["20260801",1954],["20260802",2130],["20260803",1781]]),
-      failed:    pbBuild([["20260801",627],["20260802",738],["20260803",646]])
+      visits:    pbBuild([["20260801",12823],["20260802",13020],["20260803",13612],["20260804",13220],["20260805",13859]]),
+      clicks:    pbBuild([["20260801",4254],["20260802",4536],["20260803",4420],["20260804",4404],["20260805",4524]]),
+      generated: pbBuild([["20260801",1954],["20260802",2130],["20260803",1930],["20260804",1925],["20260805",1991]]),
+      failed:    pbBuild([["20260801",627],["20260802",738],["20260803",777],["20260804",813],["20260805",583]])
     },
     query: pbEventQuery(["DYNAMIC_APP_FILE_UPLOAD_SUCCESS", "DYNAMIC_APP_VIDEO_GENERATION_CLICKED", "DYNAMIC_APP_VIDEO_GENERATED", "DYNAMIC_APP_VIDEO_FAILED"])
   },
@@ -234,10 +234,10 @@ const PIXELBIN_TOOLS = [
     name:"Video Generator", slug:"studio/video-generator", color:"#ec4899",
     note:"VIDEO_* events on studio/video-generator paths.",
     data:{
-      visits:    pbBuild([["20260801",1074],["20260802",1074],["20260803",1152]]),
-      clicks:    pbBuild([["20260801",586],["20260802",637],["20260803",713]]),
-      generated: pbBuild([["20260801",336],["20260802",418],["20260803",389]]),
-      failed:    pbBuild([["20260801",152],["20260802",158],["20260803",225]])
+      visits:    pbBuild([["20260801",1074],["20260802",1074],["20260803",1152],["20260804",1365],["20260805",1169]]),
+      clicks:    pbBuild([["20260801",583],["20260802",633],["20260803",706],["20260804",584],["20260805",767]]),
+      generated: pbBuild([["20260801",336],["20260802",417],["20260803",387],["20260804",372],["20260805",470]]),
+      failed:    pbBuild([["20260801",151],["20260802",158],["20260803",220],["20260804",133],["20260805",198]])
     },
     query: pbQuery("studio/video-generator", "video-generator", ["VIDEO_GENERATION_CLICKED", "VIDEO_GENERATED", "VIDEO_GENERATION_FAILED"])
   },
@@ -245,10 +245,10 @@ const PIXELBIN_TOOLS = [
     name:"AI Image Generator", slug:"studio/ai-image-generator", color:"#10b981",
     note:"GENERATION_* events filtered to studio/ai-image-generator.",
     data:{
-      visits:    pbBuild([["20260801",2344],["20260802",1963],["20260803",1705]]),
-      clicks:    pbBuild([["20260801",817],["20260802",781],["20260803",622]]),
-      generated: pbBuild([["20260801",835],["20260802",699],["20260803",511]]),
-      failed:    pbBuild([["20260801",1031],["20260802",188],["20260803",105]])
+      visits:    pbBuild([["20260801",2344],["20260802",1963],["20260803",1703],["20260804",2142],["20260805",2246]]),
+      clicks:    pbBuild([["20260801",800],["20260802",763],["20260803",606],["20260804",729],["20260805",1121]]),
+      generated: pbBuild([["20260801",801],["20260802",675],["20260803",500],["20260804",693],["20260805",972]]),
+      failed:    pbBuild([["20260801",970],["20260802",185],["20260803",105],["20260804",192],["20260805",269]])
     },
     query: pbQuery("studio/ai-image-generator", "ai-image-generator", ["GENERATE_CLICKED_IMAGE", "GENERATION_COMPLETED", "GENERATION_FAILED"])
   },
@@ -256,9 +256,9 @@ const PIXELBIN_TOOLS = [
     name:"AI Editor (Magic Studio)", slug:"studio/ai-editor", color:"#06b6d4",
     note:"AI_EDITOR_TOOL_APPLY - DOWNLOAD_SINGLE.",
     data:{
-      visits:    pbBuild([["20260801",606],["20260802",246],["20260803",314]]),
-      clicks:    pbBuild([["20260801",99],["20260802",88],["20260803",175]]),
-      generated: pbBuild([["20260801",31],["20260802",63],["20260803",131]]),
+      visits:    pbBuild([["20260801",606],["20260802",246],["20260803",314],["20260804",295],["20260805",399]]),
+      clicks:    pbBuild([["20260801",97],["20260802",85],["20260803",170],["20260804",168],["20260805",228]]),
+      generated: pbBuild([["20260801",30],["20260802",63],["20260803",126],["20260804",108],["20260805",203]]),
       failed:    pbBuild([])
     },
     query: pbQuery("studio/ai-editor", "ai-editor", ["AI_EDITOR_TOOL_APPLY", "DOWNLOAD_SINGLE", "EXPORT_SHARE_FAILED"])
@@ -267,9 +267,9 @@ const PIXELBIN_TOOLS = [
     name:"Magic Canvas", slug:"app_name=magic-canvas", color:"#fbbf24",
     note:"GENERATION_* events filtered by app_name=magic-canvas, not page path.",
     data:{
-      visits:    pbBuild([["20260801",444],["20260802",430],["20260803",544]]),
-      clicks:    pbBuild([["20260801",2],["20260802",1],["20260803",3]]),
-      generated: pbBuild([["20260801",2],["20260802",1],["20260803",3]]),
+      visits:    pbBuild([["20260801",444],["20260802",430],["20260803",544],["20260804",456],["20260805",381]]),
+      clicks:    pbBuild([["20260801",2],["20260802",1],["20260803",3],["20260804",18],["20260805",4]]),
+      generated: pbBuild([["20260801",2],["20260802",1],["20260803",3],["20260804",17],["20260805",4]]),
       failed:    pbBuild([])
     },
     seriesLabels: ["Page view", "Generation started", "Generation completed", "Generation failed"],
@@ -279,8 +279,8 @@ const PIXELBIN_TOOLS = [
     name:"Batch Editor", slug:"app_name=batch-editor", color:"#f97316",
     note:"IMAGE_UPLOADED & PAYMENT_POP_UP filtered to app_name=batch-editor.",
     data:{
-      visits:    pbBuild([["20260801",523],["20260802",577],["20260803",1008]]),
-      clicks:    pbBuild([["20260801",162],["20260802",157],["20260803",183]]),
+      visits:    pbBuild([["20260801",523],["20260802",577],["20260803",1008],["20260804",836],["20260805",718]]),
+      clicks:    pbBuild([["20260801",162],["20260802",157],["20260803",183],["20260804",211],["20260805",198]]),
       generated: pbBuild([]),
       failed:    pbBuild([])
     },
@@ -291,10 +291,10 @@ const PIXELBIN_TOOLS = [
     name:"AI Influencer", slug:"app_name=ai-influencer", color:"#22c55e",
     note:"page_view -> GENERATION_STARTED -> GENERATION_COMPLETED -> GENERATION_FAILED, all filtered to app_name=ai-influencer.",
     data:{
-      visits:    pbBuild([["20260801",189],["20260802",184],["20260803",262]]),
-      clicks:    pbBuild([["20260801",9],["20260802",10],["20260803",5]]),
-      generated: pbBuild([["20260801",8],["20260802",8],["20260803",5]]),
-      failed:    pbBuild([["20260801",1],["20260802",2]])
+      visits:    pbBuild([["20260801",189],["20260802",184],["20260803",262],["20260804",220],["20260805",96]]),
+      clicks:    pbBuild([["20260801",9],["20260802",10],["20260803",5],["20260804",7],["20260805",2]]),
+      generated: pbBuild([["20260801",8],["20260802",8],["20260803",5],["20260804",7]]),
+      failed:    pbBuild([["20260801",1],["20260802",2],["20260805",1]])
     },
     seriesLabels: ["Page view", "Generation started", "Generation completed", "Generation failed"],
     query: pbEventQuery(["page_view", "GENERATION_STARTED", "GENERATION_COMPLETED", "GENERATION_FAILED"])
@@ -303,10 +303,10 @@ const PIXELBIN_TOOLS = [
     name:"Marketing Studio", slug:"studio/marketing-studio", color:"#8b5cf6",
     note:"Visits use pagePath contains studio/marketing-studio. MARKETING_STUDIO_* actions use exact event-name totals without pagePath filters to avoid GA4 pagePath duplication.",
     data:{
-      visits:    pbBuild([["20260801",87],["20260802",131],["20260803",64]]),
-      clicks:    pbBuild([["20260801",6],["20260802",2],["20260803",5]]),
-      generated: pbBuild([["20260801",4],["20260803",2]]),
-      failed:    pbBuild([["20260801",1],["20260802",2],["20260803",1]])
+      visits:    pbBuild([["20260801",84],["20260802",126],["20260803",64],["20260804",107],["20260805",135]]),
+      clicks:    pbBuild([["20260801",6],["20260802",2],["20260803",5],["20260804",2],["20260805",6]]),
+      generated: pbBuild([["20260801",4],["20260803",2],["20260804",2],["20260805",2]]),
+      failed:    pbBuild([["20260801",1],["20260802",2],["20260803",1],["20260805",3]])
     },
     seriesLabels: ["Page view", "Generate clicked", "Video generated", "Video failed"],
     query: pbEventQuery(["page_view", "MARKETING_STUDIO_GENERATE_CLICKED", "MARKETING_STUDIO_VIDEO_GENERATED", "MARKETING_STUDIO_VIDEO_FAILED"])
@@ -315,10 +315,10 @@ const PIXELBIN_TOOLS = [
     name:"Free WM - PixelBin Console", slug:"IMG_FREE_PROPERTY_WM_*", color:"#14b8a6",
     note:"Free Watermark Remover events in PixelBin Console. Step 2 uses image uploaded; GA4 also has TRANSFORMATION_STAR for start.",
     data:{
-      visits:    pbBuild([["20260801",3682],["20260802",3122],["20260803",3179]]),
-      clicks:    pbBuild([["20260801",2990],["20260802",2613],["20260803",2624]]),
-      generated: pbBuild([["20260801",2119],["20260802",1861],["20260803",1932]]),
-      failed:    pbBuild([["20260801",582],["20260802",498],["20260803",386]])
+      visits:    pbBuild([["20260801",3682],["20260802",3122],["20260803",3298],["20260804",3626],["20260805",3764]]),
+      clicks:    pbBuild([["20260801",2990],["20260802",2613],["20260803",2747],["20260804",3150],["20260805",3069]]),
+      generated: pbBuild([["20260801",2119],["20260802",1861],["20260803",2055],["20260804",2355],["20260805",2232]]),
+      failed:    pbBuild([["20260801",582],["20260802",498],["20260803",464],["20260804",470],["20260805",433]])
     },
     seriesLabels: ["Page view", "Image uploaded", "Transformation success", "Transformation failed"],
     query: pbEventQuery(["IMG_FREE_PROPERTY_WM_PAGE_VIEW", "IMG_FREE_PROPERTY_WM_IMAGE_UPLOADED", "IMG_FREE_PROPERTY_WM_TRANSFORMATION_SUCC", "IMG_FREE_PROPERTY_WM_TRANSFORMATION_FAIL"])
@@ -327,10 +327,10 @@ const PIXELBIN_TOOLS = [
     name:"Free US - PixelBin Console", slug:"IMG_FREE_PROPERTY_US_*", color:"#84cc16",
     note:"Free Upscale events in PixelBin Console. Step 2 uses image uploaded; GA4 also has TRANSFORMATION_STAR for start.",
     data:{
-      visits:    pbBuild([["20260801",2285],["20260802",2248],["20260803",2254]]),
-      clicks:    pbBuild([["20260801",807],["20260802",675],["20260803",711]]),
-      generated: pbBuild([["20260801",597],["20260802",440],["20260803",476]]),
-      failed:    pbBuild([["20260801",98],["20260802",93],["20260803",116]])
+      visits:    pbBuild([["20260801",2285],["20260802",2248],["20260803",2386],["20260804",2447],["20260805",2290]]),
+      clicks:    pbBuild([["20260801",807],["20260802",675],["20260803",832],["20260804",942],["20260805",743]]),
+      generated: pbBuild([["20260801",597],["20260802",440],["20260803",578],["20260804",683],["20260805",479]]),
+      failed:    pbBuild([["20260801",98],["20260802",93],["20260803",133],["20260804",124],["20260805",118]])
     },
     seriesLabels: ["Page view", "Image uploaded", "Transformation success", "Transformation failed"],
     query: pbEventQuery(["IMG_FREE_PROPERTY_US_PAGE_VIEW", "IMG_FREE_PROPERTY_US_IMAGE_UPLOADED", "IMG_FREE_PROPERTY_US_TRANSFORMATION_SUCC", "IMG_FREE_PROPERTY_US_TRANSFORMATION_FAIL"])
@@ -377,7 +377,7 @@ function pbEventQuery(eventList){
    PROPERTY 2 — WatermarkRemover.io (303254358)
    Range: Apr 5 — May 4 (30 days)
    ============================================================ */
-const WM_DAYS = buildDayList("2026-08-01","2026-08-03");
+const WM_DAYS = buildDayList("2026-08-01","2026-08-05");
 const wmBuild = makeBuilder(WM_DAYS);
 
 const WM_TOOLS = [
@@ -385,10 +385,10 @@ const WM_TOOLS = [
     name:"Main Image Flow", slug:"page_view -> IMAGE_TRANSFORMED", color:"#3aa0ff",
     note:"Core conversion: visit -> upload attempt -> output -> fail.",
     data:{
-      visits:    wmBuild([["20260801",207174],["20260802",198952],["20260803",228378]]),
-      clicks:    wmBuild([["20260801",78956],["20260802",76734],["20260803",92413]]),
-      generated: wmBuild([["20260801",134660],["20260802",129330],["20260803",159424]]),
-      failed:    wmBuild([["20260801",11117],["20260802",11790],["20260803",13124]])
+      visits:    wmBuild([["20260801",207174],["20260802",198952],["20260803",228374],["20260804",228985],["20260805",228071]]),
+      clicks:    wmBuild([["20260801",78956],["20260802",76734],["20260803",92413],["20260804",92914],["20260805",91483]]),
+      generated: wmBuild([["20260801",134660],["20260802",129330],["20260803",159424],["20260804",160748],["20260805",159656]]),
+      failed:    wmBuild([["20260801",11117],["20260802",11790],["20260803",13134],["20260804",12898],["20260805",12274]])
     },
     query: wmEventQuery(["page_view", "IMAGE_UPLOAD_ATTEMPT", "IMAGE_TRANSFORMED", "IMAGE_UPLOAD_FAILED"])
   },
@@ -396,10 +396,10 @@ const WM_TOOLS = [
     name:"TikTok Video Flow", slug:"TIKTOK_*", color:"#ec4899",
     note:"watermarkremover.io/tiktok-watermark-remover. URL paste -> click -> error.",
     data:{
-      visits:    wmBuild([["20260801",9360],["20260802",7136],["20260803",7989]]),
-      clicks:    wmBuild([["20260801",20077],["20260802",17107],["20260803",18186]]),
+      visits:    wmBuild([["20260801",9360],["20260802",7136],["20260803",8124],["20260804",12544],["20260805",11041]]),
+      clicks:    wmBuild([["20260801",20077],["20260802",17107],["20260803",18209],["20260804",22547],["20260805",21142]]),
       generated: wmBuild([]),
-      failed:    wmBuild([["20260801",7386],["20260802",5048],["20260803",5805]])
+      failed:    wmBuild([["20260801",7386],["20260802",5048],["20260803",5965],["20260804",12922],["20260805",10594]])
     },
     query: wmEventQuery(["TIKTOK_URL_PASTE", "TIKTOK_DOWNLOAD_CLICK", "TIKTOK_DOWNLOAD_ERROR"])
   },
@@ -407,10 +407,10 @@ const WM_TOOLS = [
     name:"Monetization Triggers", slug:"LIMIT / SIGNUP / PRICING popups", color:"#f59e0b",
     note:"How often free-tier limits, signup popups & pricing popups fire - and CTA conversion.",
     data:{
-      visits:    wmBuild([["20260801",11015],["20260802",11810],["20260803",13114]]),
-      clicks:    wmBuild([["20260801",15985],["20260802",15245],["20260803",16155]]),
-      generated: wmBuild([["20260801",3224],["20260802",3287],["20260803",3326]]),
-      failed:    wmBuild([["20260801",1212],["20260802",1367],["20260803",1077]])
+      visits:    wmBuild([["20260801",11015],["20260802",11810],["20260803",13121],["20260804",12643],["20260805",11987]]),
+      clicks:    wmBuild([["20260801",15985],["20260802",15245],["20260803",16186],["20260804",17379],["20260805",17933]]),
+      generated: wmBuild([["20260801",3224],["20260802",3287],["20260803",3507],["20260804",3353],["20260805",3030]]),
+      failed:    wmBuild([["20260801",1212],["20260802",1367],["20260803",1345],["20260804",1365],["20260805",993]])
     },
     seriesLabels: ["Limit popup", "Signup popup", "Signup CTA click", "Sign-up attempt"],
     query: wmEventQuery(["LIMIT_POPUP_TRIGGRED", "SIGNUP_POPUP_TRIGGRED", "SIGNUP_POPUP_CTA_CLICKED", "USER_SIGN_UP_ATTEMPT"])
@@ -432,7 +432,7 @@ function wmEventQuery(eventList){
    PROPERTY 3 — Upscale.media (298351464)
    Range: Apr 5 — May 4 (30 days)
    ============================================================ */
-const UM_DAYS = buildDayList("2026-08-01","2026-08-03");
+const UM_DAYS = buildDayList("2026-08-01","2026-08-05");
 const umBuild = makeBuilder(UM_DAYS);
 
 const UM_TOOLS = [
@@ -440,10 +440,10 @@ const UM_TOOLS = [
     name:"Main Image Flow", slug:"page_view -> IMAGE_TRANSFORMED", color:"#3aa0ff",
     note:"Visit -> upload attempt -> output -> fail.",
     data:{
-      visits:    umBuild([["20260801",116632],["20260802",100559],["20260803",131515]]),
-      clicks:    umBuild([["20260801",54791],["20260802",45260],["20260803",61428]]),
-      generated: umBuild([["20260801",44194],["20260802",36205],["20260803",50204]]),
-      failed:    umBuild([["20260801",5771],["20260802",5125],["20260803",6275]])
+      visits:    umBuild([["20260801",116632],["20260802",100559],["20260803",131515],["20260804",145668],["20260805",149474]]),
+      clicks:    umBuild([["20260801",54791],["20260802",45260],["20260803",61425],["20260804",69255],["20260805",71642]]),
+      generated: umBuild([["20260801",44194],["20260802",36205],["20260803",50233],["20260804",56804],["20260805",58791]]),
+      failed:    umBuild([["20260801",5771],["20260802",5125],["20260803",6468],["20260804",6680],["20260805",6437]])
     },
     query: umEventQuery(["page_view", "IMAGE_UPLOAD_ATTEMPT", "IMAGE_TRANSFORMED", "IMAGE_UPLOAD_FAILED"])
   },
@@ -451,10 +451,10 @@ const UM_TOOLS = [
     name:"Monetization Triggers", slug:"LIMIT / SIGNUP / PRICING popups", color:"#f59e0b",
     note:"Free-tier limit popups vs signup CTA conversion.",
     data:{
-      visits:    umBuild([["20260801",4374],["20260802",3794],["20260803",4030]]),
-      clicks:    umBuild([["20260801",2067],["20260802",1691],["20260803",2026]]),
-      generated: umBuild([["20260801",1516],["20260802",1385],["20260803",1508]]),
-      failed:    umBuild([["20260801",382],["20260802",294],["20260803",291]])
+      visits:    umBuild([["20260801",4374],["20260802",3794],["20260803",4231],["20260804",5110],["20260805",5402]]),
+      clicks:    umBuild([["20260801",2067],["20260802",1691],["20260803",2198],["20260804",2505],["20260805",2417]]),
+      generated: umBuild([["20260801",1516],["20260802",1385],["20260803",1672],["20260804",1828],["20260805",1809]]),
+      failed:    umBuild([["20260801",382],["20260802",294],["20260803",382],["20260804",486],["20260805",405]])
     },
     seriesLabels: ["Limit popup", "Pricing popup", "Signup CTA click", "Sign-up attempt"],
     query: umEventQuery(["LIMIT_POPUP_TRIGGRED", "PRICING_POPUP_TRIGGRED", "SIGNUP_POPUP_CTA_CLICKED", "USER_SIGN_UP_ATTEMPT"])
@@ -711,10 +711,10 @@ function pbFailureTableHtml(){
   </section>`;
 }
 
-/* GA4 property KPIs (last 30 complete days, 2026-07-05 to 2026-08-03; DAU = 2026-08-03) */
-const PB_KPI = {"mau": 1331726, "dau": 50410, "bounceRate": 0.4538, "avgSession": 196.85, "organicUsers": 536373, "organicSessions": 636321};
-const WM_KPI = {"mau": 1751573, "dau": 82647, "bounceRate": 0.2127, "avgSession": 247.36, "organicUsers": 1430942, "organicSessions": 2124867};
-const UM_KPI = {"mau": 1012630, "dau": 47118, "bounceRate": 0.239, "avgSession": 324.19, "organicUsers": 680378, "organicSessions": 1223816};
+/* GA4 property KPIs (last 30 complete days, 2026-07-07 to 2026-08-05; DAU = 2026-08-05) */
+const PB_KPI = {"mau": 1333852, "dau": 51522, "bounceRate": 0.4473, "avgSession": 201.81, "organicUsers": 533371, "organicSessions": 631753};
+const WM_KPI = {"mau": 1758535, "dau": 83174, "bounceRate": 0.2254, "avgSession": 245.58, "organicUsers": 1437446, "organicSessions": 2117201};
+const UM_KPI = {"mau": 1017798, "dau": 53168, "bounceRate": 0.2421, "avgSession": 329.24, "organicUsers": 681569, "organicSessions": 1222895};
 
 /* GA4 six-month property trends (2026-02-01 to 2026-07-31; complete calendar months) */
 const GA4_TRENDS = {"pixelbin": {"labels": ["Feb", "Mar", "Apr", "May", "Jun", "Jul"], "mau": [1591066, 2267575, 2267153, 1894426, 1619874, 1376367], "avgDau": [62088, 78837, 80070, 66666, 57966, 48253], "bounceRate": [0.3507, 0.4649, 0.5176, 0.47, 0.4693, 0.4488], "organicSessions": [1116714, 1306114, 981608, 931210, 751180, 678498], "startDate": "2026-02-01", "endDate": "2026-07-31"}, "wm": {"labels": ["Feb", "Mar", "Apr", "May", "Jun", "Jul"], "mau": [1923979, 2106503, 2055309, 2110160, 1865186, 1811797], "avgDau": [92755, 92039, 91546, 87167, 82497, 78242], "bounceRate": [0.2422, 0.244, 0.2288, 0.2264, 0.2165, 0.2136], "organicSessions": [2280116, 2471864, 2428737, 2352746, 2165412, 2187739], "startDate": "2026-02-01", "endDate": "2026-07-31"}, "um": {"labels": ["Feb", "Mar", "Apr", "May", "Jun", "Jul"], "mau": [953225, 1106291, 1119960, 1098345, 1121515, 1064198], "avgDau": [45518, 47846, 50514, 48534, 50975, 47433], "bounceRate": [0.2511, 0.2457, 0.2343, 0.2296, 0.2536, 0.2311], "organicSessions": [1081470, 1301515, 1355208, 1286428, 1268456, 1290705], "startDate": "2026-02-01", "endDate": "2026-07-31"}};
@@ -1011,9 +1011,9 @@ const GA4_TREND_METRICS = [
 
 const TABS = [
   { id:"ga4", label:"GA4", chip:"6-month overview", isGa4Tab:true },
-  { id:"pixelbin", label:"Pixelbin (Console)", chip:"Property 309592666",  range:"2026-08-01 -> 2026-08-03 (3 complete days)", days: PB_DAYS, tools: PIXELBIN_TOOLS, kpi: PB_KPI, note:"Most action events started firing on <b>Apr 20–24</b> (instrumentation rollout) — includes new IMG_FREE_PROPERTY_WM/US free-tool events." },
-  { id:"wm",       label:"WatermarkRemover.io", chip:"Property 303254358", range:"2026-08-01 -> 2026-08-03 (3 complete days)", days: WM_DAYS, tools: WM_TOOLS,       kpi: WM_KPI, note:"Includes core image flow, TikTok video-watermark flow & monetization popups." },
-  { id:"um",       label:"Upscale.media",       chip:"Property 298351464", range:"2026-08-01 -> 2026-08-03 (3 complete days)", days: UM_DAYS, tools: UM_TOOLS,       kpi: UM_KPI, note:"Core upscaling flow & monetization popups." },
+  { id:"pixelbin", label:"Pixelbin (Console)", chip:"Property 309592666",  range:"2026-08-01 -> 2026-08-05 (5 complete days)", days: PB_DAYS, tools: PIXELBIN_TOOLS, kpi: PB_KPI, note:"Most action events started firing on <b>Apr 20–24</b> (instrumentation rollout) — includes new IMG_FREE_PROPERTY_WM/US free-tool events." },
+  { id:"wm",       label:"WatermarkRemover.io", chip:"Property 303254358", range:"2026-08-01 -> 2026-08-05 (5 complete days)", days: WM_DAYS, tools: WM_TOOLS,       kpi: WM_KPI, note:"Includes core image flow, TikTok video-watermark flow & monetization popups." },
+  { id:"um",       label:"Upscale.media",       chip:"Property 298351464", range:"2026-08-01 -> 2026-08-05 (5 complete days)", days: UM_DAYS, tools: UM_TOOLS,       kpi: UM_KPI, note:"Core upscaling flow & monetization popups." },
   { id:"failures", label:"Failure Analysis", chip:"GA4 + Sentry", range:"past 7 days + 24h slice", days: [], tools: [], kpi: null, note:"Engineering-actionable errors only · curated across all 3 properties.", isFailureTab:true }
 ];
 
@@ -1022,7 +1022,7 @@ function fmtSec(s){ const m=Math.floor(s/60), r=Math.round(s%60); return `${m}m 
 function kpiStripHtml(k){
   const cards = [
     { label:"MAU", value:fmt(k.mau), sub:"rolling 30-day active users", color:"var(--pb-primary)" },
-    { label:"DAU", value:fmt(k.dau), sub:"latest complete day (Aug 3)", color:"var(--pb-primary-light)" },
+    { label:"DAU", value:fmt(k.dau), sub:"latest complete day (Aug 5)", color:"var(--pb-primary-light)" },
     { label:"Bounce Rate", value:(k.bounceRate*100).toFixed(1)+"%", sub:"rolling 30-day", color:"var(--pb-accent)" },
     { label:"Avg Session", value:fmtSec(k.avgSession), sub:"rolling 30-day duration", color:"var(--pb-heading)" },
     { label:"Organic Traffic", value:fmt(k.organicUsers), sub:`30-day users · ${fmt(k.organicSessions)} sessions`, color:"var(--pb-primary-dark)" }
@@ -1247,7 +1247,7 @@ function copyQuery(){
 }
 document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeModal(); });
 
-document.getElementById("builtAt").textContent = "2026-08-04 11:10 IST";
+document.getElementById("builtAt").textContent = "2026-08-06 10:05 IST";
 document.getElementById("builtAtTop").textContent = document.getElementById("builtAt").textContent;
 </script>
 </body>

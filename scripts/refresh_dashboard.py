@@ -28,8 +28,6 @@ BUILT_AT = dt.datetime.now(TZ).isoformat(timespec="seconds")
 
 PROPERTIES = {
     "pixelbin": {"id": "309592666", "label": "Pixelbin (Console)", "color": "#6933FA"},
-    "wm": {"id": "303254358", "label": "WatermarkRemover.io", "color": "#FF7340"},
-    "um": {"id": "298351464", "label": "Upscale.media", "color": "#0F9F85"},
 }
 
 PRODUCT_FLOWS = {
@@ -114,30 +112,6 @@ PRODUCT_FLOWS = {
             "name": "Free Image Upscaler",
             "slug": "free-image-upscaler",
             "events": ["IMG_FREE_PROPERTY_US_PAGE_VIEW", "IMG_FREE_PROPERTY_US_IMAGE_UPLOADED", "IMG_FREE_PROPERTY_US_TRANSFORMATION_SUCC", "IMG_FREE_PROPERTY_US_TRANSFORMATION_FAIL"],
-        },
-    ],
-    "wm": [
-        {
-            "name": "Main Image Flow",
-            "slug": "image-flow",
-            "events": ["IMAGE_UPLOAD_ATTEMPT", "IMAGE_UPLOADED", "IMAGE_TRANSFORMED", "IMAGE_DOWNLOAD_CLICK"],
-        },
-        {
-            "name": "Upload Health",
-            "slug": "upload-health",
-            "events": ["IMAGE_UPLOAD_ATTEMPT", "IMAGE_UPLOADED", "IMAGE_UPLOAD_FAILED", "IMAGE_TRANSFORMATION_FAILED"],
-        },
-    ],
-    "um": [
-        {
-            "name": "Main Image Flow",
-            "slug": "image-flow",
-            "events": ["IMAGE_UPLOAD_ATTEMPT", "IMAGE_UPLOADED", "IMAGE_TRANSFORMED", "IMAGE_DOWNLOAD_CLICK"],
-        },
-        {
-            "name": "Upload Health",
-            "slug": "upload-health",
-            "events": ["IMAGE_UPLOAD_ATTEMPT", "IMAGE_UPLOADED", "IMAGE_UPLOAD_FAILED", "IMAGE_TRANSFORMATION_FAILED"],
         },
     ],
 }
@@ -272,7 +246,7 @@ class MCPClient:
                 "params": {
                     "protocolVersion": "2024-11-05",
                     "capabilities": {},
-                    "clientInfo": {"name": "codex-render-growth-dashboard", "version": "2.0"},
+                    "clientInfo": {"name": "codex-pixelbin-analytics-dashboard", "version": "1.0"},
                 },
             }
         )
@@ -472,73 +446,9 @@ def number(value: str | int | float | None) -> float:
         return 0.0
 
 
-def daily_property(property_key: str, property_id: str) -> list[dict[str, Any]]:
-    base = cached_report(
-        f"{property_key}_daily",
-        property_id,
-        ["date"],
-        ["sessions", "activeUsers", "screenPageViews", "bounceRate", "engagementRate"],
-    )
-    organic = cached_report(
-        f"{property_key}_organic_daily",
-        property_id,
-        ["date"],
-        ["sessions"],
-        exact("sessionDefaultChannelGroup", "Organic Search"),
-    )
-    organic_by_day = {normalize_date(item["date"]): int(number(item["sessions"])) for item in rows(organic)}
-    output = []
-    for item in rows(base):
-        day = normalize_date(item["date"])
-        output.append(
-            {
-                "date": day,
-                "sessions": int(number(item["sessions"])),
-                "activeUsers": int(number(item["activeUsers"])),
-                "pageViews": int(number(item["screenPageViews"])),
-                "bounceRate": number(item["bounceRate"]),
-                "engagementRate": number(item["engagementRate"]),
-                "organicSessions": organic_by_day.get(day, 0),
-            }
-        )
-    return sorted(output, key=lambda item: item["date"])
-
-
-def canonical_tool(path: str) -> str | None:
-    match = re.search(r"/ai-tools/([^/?#]+)", path, flags=re.I)
-    return match.group(1).lower() if match else None
-
-
 def title_from_slug(slug: str) -> str:
     replacements = {"ai": "AI", "bg": "BG", "url": "URL", "3d": "3D", "hd": "HD"}
     return " ".join(replacements.get(part, part.capitalize()) for part in slug.split("-"))
-
-
-NOISE_EVENTS = {
-    "PAGE_VIEW",
-    "SESSION_START",
-    "FIRST_VISIT",
-    "USER_ENGAGEMENT",
-    "SCROLL",
-    "CLICK",
-    "FORM_START",
-    "FORM_SUBMIT",
-    "LOGIN",
-    "SIGN_UP",
-}
-
-
-def event_stage(event_name: str) -> str | None:
-    value = event_name.upper()
-    if value in NOISE_EVENTS or re.search(r"FAILED|FAILURE|ERROR|PAYMENT|PRICING|PLAN|CREDIT|LIMIT|AUTH|SIGNUP", value):
-        return None
-    if re.search(r"DOWNLOAD|GENERATED|TRANSFORMED|COMPLETED|POLLING_SUCC|TRANSFORMATION_SUCC|GENERATION_SUCC", value):
-        return "output"
-    if re.search(r"GENERAT(?:E|ION).*CLICK|GENERATION_STARTED|TRANSFORMATION_TRIGGERED|APPLY|PROCESS|ENHANCE|UPSCALE", value):
-        return "action"
-    if re.search(r"UPLOAD|PROMPT_ENTER|URL_PASTE|FILE_SELECT|IMAGE_SELECT|VIDEO_SELECT", value):
-        return "input"
-    return None
 
 
 def discover_top_tools() -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -576,9 +486,6 @@ def discover_top_tools() -> tuple[list[dict[str, Any]], dict[str, Any]]:
                 "contentGroup": content_group,
                 "pageViews": dict(daily_by_slug[slug]),
                 "pageViewTotal90d": sum(daily_by_slug[slug].values()),
-                "topPaths": [],
-                "events": [],
-                "trackingNote": f"Exact customEvent:content_group={content_group} for every stage.",
             }
         )
         evidence[slug] = {
@@ -663,34 +570,14 @@ def fetch_flow(property_key: str, index: int, config: dict[str, Any]) -> dict[st
     raw_name = f"{property_key}_flow_{index:02d}_{config['slug']}{version}"
     payloads: list[dict[str, Any]] = []
     query_error = None
-    if config.get("pagePath"):
-        try:
-            page_payload = cached_report(
-                f"{raw_name}_page",
-                property_id,
-                ["date", "eventName"],
-                ["eventCount"],
-                and_filter(exact("eventName", "page_view"), contains("pagePath", config["pagePath"])),
-            )
-            action_payload = cached_report(
-                f"{raw_name}_actions",
-                property_id,
-                ["date", "eventName"],
-                ["eventCount"],
-                in_list("eventName", [event for event in config["events"] if event != "page_view"]),
-            )
-            payloads = [page_payload, action_payload]
-        except Exception as error:
-            query_error = str(error)
-    else:
-        event_filter = in_list("eventName", config["events"])
-        if config.get("filter"):
-            field, value = config["filter"]
-            event_filter = and_filter(event_filter, exact(field, value))
-        try:
-            payloads = [cached_report(raw_name, property_id, ["date", "eventName"], ["eventCount"], event_filter)]
-        except Exception as error:
-            query_error = str(error)
+    event_filter = in_list("eventName", config["events"])
+    if config.get("filter"):
+        field, value = config["filter"]
+        event_filter = and_filter(event_filter, exact(field, value))
+    try:
+        payloads = [cached_report(raw_name, property_id, ["date", "eventName"], ["eventCount"], event_filter)]
+    except Exception as error:
+        query_error = str(error)
 
     if query_error and not payloads:
         payloads = [{"error": query_error, "rows": []}]
@@ -705,23 +592,14 @@ def fetch_flow(property_key: str, index: int, config: dict[str, Any]) -> dict[st
         "name": config["name"],
         "slug": config["slug"],
         "events": [{"name": event, "daily": daily[event], "total90d": sum(daily[event].values())} for event in config["events"]],
-        "scope": (
-            f"pagePath contains {config['pagePath']}; action event totals"
-            if config.get("pagePath")
-            else f"{config['filter'][0]}={config['filter'][1]}"
-            if config.get("filter")
-            else "eventName totals"
-        ),
+        "scope": f"{config['filter'][0]}={config['filter'][1]}" if config.get("filter") else "eventName totals",
         "queryError": query_error,
     }
 
 
 def main() -> None:
     print(f"Pulling GA4 growth data for {START} through {END} (today may be partial)...", flush=True)
-    properties = {
-        key: {**config, "daily": daily_property(key, config["id"])}
-        for key, config in PROPERTIES.items()
-    }
+    properties = {key: dict(config) for key, config in PROPERTIES.items()}
     top_tools, evidence = discover_top_tools()
     funnels = discover_ai_funnels(top_tools)
     for tool in top_tools:

@@ -12,7 +12,7 @@ import re
 import select
 import subprocess
 import time
-from collections import Counter, defaultdict
+from collections import defaultdict
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -56,7 +56,7 @@ PRODUCT_FLOWS = {
             "name": "Marketing Studio",
             "slug": "marketing-studio",
             "events": ["page_view", "MARKETING_STUDIO_GENERATE_CLICKED", "MARKETING_STUDIO_VIDEO_GENERATED", "MARKETING_STUDIO_VIDEO_FAILED"],
-            "pagePath": "studio/marketing-studio",
+            "filter": ("customEvent:app_name", "marketing-studio"),
         },
         {
             "name": "Dynamic Image Apps",
@@ -77,13 +77,15 @@ PRODUCT_FLOWS = {
             "name": "Mini Studio",
             "slug": "mini-studio",
             "events": ["page_view", "APPLY_TRANSFORMATION_CLICK", "DOWNLOAD_SINGLE", "VALIDATION_ERROR"],
-            "filter": ("contentGroup", "mini-studio"),
+            "filter": ("customEvent:app_name", "mini-studio"),
+            "cacheVersion": "app-name-v2",
         },
         {
             "name": "AI Editor (Magic Studio)",
             "slug": "ai-editor",
             "events": ["page_view", "AI_EDITOR_TOOL_APPLY", "DOWNLOAD_SINGLE", "EXPORT_SHARE_FAILED"],
-            "filter": ("contentGroup", "ai-editor"),
+            "filter": ("customEvent:app_name", "ai-editor"),
+            "cacheVersion": "app-name-v2",
         },
         {
             "name": "Magic Canvas",
@@ -181,6 +183,15 @@ AI_FUNNEL_MAP = {
         {"label": "Signup CTA", "events": ["IMG_TO_IMG_FREE_TRIAL_SIGNUP_CLICKED", "IMG_TO_IMG_PREMIUM_SIGNUP_CLICKED"], "kind": "cta"},
         {"label": "Sign-up attempt", "events": ["USER_SIGN_UP_ATTEMPT"], "kind": "key"},
     ],
+    "add-suit-to-photo": [
+        {"label": "Page view", "events": ["page_view"], "kind": "traffic"},
+        {"label": "Image uploaded", "events": ["IMG_TO_IMG_IMAGE_UPLOADED"], "kind": "input"},
+        {"label": "Generate clicked", "events": ["IMG_TO_IMG_GENERATE_CLICKED"], "kind": "action"},
+        {"label": "Transform success", "events": ["IMG_TO_IMG_TRANSFORMATION_SUCCESS"], "kind": "success"},
+        {"label": "Free-trial limit", "events": ["IMG_TO_IMG_FREE_TRIAL_LIMIT_REACHED"], "kind": "gate"},
+        {"label": "Signup CTA", "events": ["IMG_TO_IMG_FREE_TRIAL_SIGNUP_CLICKED", "IMG_TO_IMG_PREMIUM_SIGNUP_CLICKED"], "kind": "cta"},
+        {"label": "Sign-up attempt", "events": ["USER_SIGN_UP_ATTEMPT"], "kind": "key"},
+    ],
     "unblur-image": [
         {"label": "Page view", "events": ["page_view"], "kind": "traffic"},
         {"label": "Image uploaded", "events": ["IMG_TO_IMG_IMAGE_UPLOADED"], "kind": "input"},
@@ -221,6 +232,8 @@ AI_FUNNEL_MAP = {
         {"label": "Image uploaded", "events": ["IMG_FREE_PROPERTY_US_IMAGE_UPLOADED"], "kind": "input"},
         {"label": "Transform success", "events": ["IMG_FREE_PROPERTY_US_TRANSFORMATION_SUCC"], "kind": "success"},
         {"label": "Free-trial limit", "events": ["IMG_FREE_PROPERTY_US_FREE_TRIAL_LIMIT_RE"], "kind": "gate"},
+        {"label": "Payment popup", "events": ["DYNAMIC_APP_PAYMENT_TRIGGERED"], "kind": "gate"},
+        {"label": "Sign-up popup", "events": ["DYNAMIC_APP_SIGNUP_TRIGGERED"], "kind": "gate"},
         {"label": "Sign-up attempt", "events": ["USER_SIGN_UP_ATTEMPT"], "kind": "key"},
     ],
 }
@@ -531,135 +544,60 @@ def event_stage(event_name: str) -> str | None:
 def discover_top_tools() -> tuple[list[dict[str, Any]], dict[str, Any]]:
     property_id = PROPERTIES["pixelbin"]["id"]
     page_report = cached_report(
-        "pixelbin_ai_tools_pageviews",
+        f"pixelbin_ai_tools_content_group_pageviews_{END.isoformat()}",
         property_id,
-        ["date", "pagePath"],
+        ["date", "customEvent:content_group"],
         ["eventCount"],
-        and_filter(exact("eventName", "page_view"), contains("pagePath", "/ai-tools/")),
+        and_filter(
+            exact("eventName", "page_view"),
+            contains("customEvent:content_group", "ai-tool:"),
+        ),
     )
     daily_by_slug: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-    paths_by_slug: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     for item in rows(page_report):
-        slug = canonical_tool(item.get("pagePath", ""))
-        if not slug:
+        content_group = item.get("customEvent:content_group", "")
+        if not content_group.startswith("ai-tool:"):
             continue
+        slug = content_group.split(":", 1)[1]
         count = int(number(item.get("eventCount")))
         day = normalize_date(item.get("date", ""))
         daily_by_slug[slug][day] += count
-        paths_by_slug[slug][item.get("pagePath", "")] += count
 
     ranked = sorted(daily_by_slug, key=lambda slug: sum(daily_by_slug[slug].values()), reverse=True)[:10]
     tools: list[dict[str, Any]] = []
     evidence: dict[str, Any] = {}
     for rank, slug in enumerate(ranked, start=1):
-        scope_reports: dict[str, dict[str, Any]] = {}
-        scope_filters = {
-            "app_name": exact("customEvent:app_name", slug),
-            "content_group": exact("contentGroup", slug),
-            "page_path": contains("pagePath", f"/ai-tools/{slug}"),
-        }
-        for source, scope_filter in scope_filters.items():
-            try:
-                payload = cached_report(
-                    f"ai_tool_{rank:02d}_{slug}_{source}",
-                    property_id,
-                    ["date", "eventName"],
-                    ["eventCount"],
-                    scope_filter,
-                )
-            except Exception as error:
-                payload = {"error": str(error), "rows": []}
-            scope_reports[source] = payload
-
-        source_candidates: dict[str, dict[str, dict[str, Any]]] = {}
-        for source in ("app_name", "content_group", "page_path"):
-            by_event: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-            for item in rows(scope_reports[source]):
-                event_name = item.get("eventName", "")
-                if event_name == "page_view":
-                    continue
-                by_event[event_name][normalize_date(item.get("date", ""))] += int(number(item.get("eventCount")))
-            source_candidates[source] = {}
-            for event_name, daily in by_event.items():
-                source_candidates[source][event_name] = {
-                        "name": event_name,
-                        "source": source,
-                        "daily": dict(daily),
-                        "total": sum(daily.values()),
-                        "stage": event_stage(event_name),
-                    }
-
-        source_priority = {"app_name": 3, "page_path": 2, "content_group": 1}
-        staged_by_source: dict[str, list[dict[str, Any]]] = {}
-        for source, candidates in source_candidates.items():
-            staged: list[dict[str, Any]] = []
-            for stage in ("input", "action", "output"):
-                matches = [candidate for candidate in candidates.values() if candidate["stage"] == stage]
-                if matches:
-                    staged.append(max(matches, key=lambda candidate: candidate["total"]))
-            staged_by_source[source] = staged
-        best_source = max(
-            staged_by_source,
-            key=lambda source: (len(staged_by_source[source]), source_priority[source]),
-        )
-        selected = list(staged_by_source[best_source])
-        if len(selected) < 3:
-            extras = sorted(
-                (
-                    candidate
-                    for candidate in source_candidates[best_source].values()
-                    if candidate["stage"] and candidate not in selected
-                ),
-                key=lambda candidate: candidate["total"],
-                reverse=True,
-            )
-            selected.extend(extras[: 3 - len(selected)])
-
-        top_paths = sorted(paths_by_slug[slug].items(), key=lambda item: item[1], reverse=True)[:3]
+        content_group = f"ai-tool:{slug}"
         tools.append(
             {
                 "rank": rank,
                 "slug": slug,
                 "name": title_from_slug(slug),
+                "contentGroup": content_group,
                 "pageViews": dict(daily_by_slug[slug]),
                 "pageViewTotal90d": sum(daily_by_slug[slug].values()),
-                "topPaths": [{"path": path, "pageViews": count} for path, count in top_paths],
-                "events": selected,
-                "trackingNote": (
-                    "Observed product events mapped by app_name/content_group/page_path."
-                    if selected
-                    else "No tool-specific product event was observed; page views only."
-                ),
+                "topPaths": [],
+                "events": [],
+                "trackingNote": f"Exact customEvent:content_group={content_group} for every stage.",
             }
         )
         evidence[slug] = {
-            "selected": [{key: value for key, value in item.items() if key != "daily"} for item in selected],
-            "topCandidates": [
-                {key: value for key, value in candidate.items() if key != "daily"}
-                for candidate in sorted(
-                    (
-                        candidate
-                        for candidates in source_candidates.values()
-                        for candidate in candidates.values()
-                    ),
-                    key=lambda item: item["total"],
-                    reverse=True,
-                )[:15]
-            ],
+            "contentGroup": content_group,
+            "pageViewTotal90d": sum(daily_by_slug[slug].values()),
         }
     return tools, evidence
 
 
 def discover_ai_funnels(tools: list[dict[str, Any]]) -> dict[str, Any]:
-    funnel_start = END - dt.timedelta(days=6)
-    raw_name = f"ai_tools_funnel_7d_{END.isoformat()}"
+    content_groups = [tool["contentGroup"] for tool in tools]
+    raw_name = f"ai_tools_content_group_funnel_90d_{END.isoformat()}"
     payload = cached_report(
         raw_name,
         PROPERTIES["pixelbin"]["id"],
-        ["date", "pagePath", "eventName", "customEvent:app_name", "customEvent:slug"],
+        ["date", "eventName", "customEvent:content_group"],
         ["eventCount", "keyEvents", "totalUsers"],
-        contains("pagePath", "/ai-tools/"),
-        start_date=funnel_start,
+        in_list("customEvent:content_group", content_groups),
+        start_date=START,
         end_date=END,
     )
 
@@ -668,13 +606,12 @@ def discover_ai_funnels(tools: list[dict[str, Any]]) -> dict[str, Any]:
             lambda: {
                 "daily": defaultdict(int),
                 "keyEvents": 0.0,
-                "appNames": Counter(),
-                "slugs": Counter(),
             }
         )
     )
     for item in rows(payload):
-        tool_slug = canonical_tool(item.get("pagePath", ""))
+        content_group = item.get("customEvent:content_group", "")
+        tool_slug = content_group.split(":", 1)[1] if content_group.startswith("ai-tool:") else ""
         if not tool_slug or tool_slug not in AI_FUNNEL_MAP:
             continue
         event_name = item.get("eventName", "")
@@ -682,12 +619,6 @@ def discover_ai_funnels(tools: list[dict[str, Any]]) -> dict[str, Any]:
         count = int(number(item.get("eventCount")))
         event["daily"][normalize_date(item.get("date", ""))] += count
         event["keyEvents"] += number(item.get("keyEvents"))
-        app_name = item.get("customEvent:app_name", "")
-        event_slug = item.get("customEvent:slug", "")
-        if app_name not in ("", "(not set)"):
-            event["appNames"][app_name] += count
-        if event_slug not in ("", "(not set)"):
-            event["slugs"][event_slug] += count
 
     output: dict[str, Any] = {}
     for tool in tools:
@@ -695,8 +626,6 @@ def discover_ai_funnels(tools: list[dict[str, Any]]) -> dict[str, Any]:
         stage_rows = []
         for config in AI_FUNNEL_MAP.get(tool_slug, []):
             daily: dict[str, int] = defaultdict(int)
-            app_names: Counter[str] = Counter()
-            event_slugs: Counter[str] = Counter()
             key_event_count = 0.0
             for event_name in config["events"]:
                 event = observed[tool_slug].get(event_name)
@@ -704,18 +633,7 @@ def discover_ai_funnels(tools: list[dict[str, Any]]) -> dict[str, Any]:
                     continue
                 for day, count in event["daily"].items():
                     daily[day] += count
-                app_names.update(event["appNames"])
-                event_slugs.update(event["slugs"])
                 key_event_count += event["keyEvents"]
-
-            if config["kind"] == "traffic":
-                mapping = f"URL contains /ai-tools/{tool_slug}"
-            elif app_names and app_names.most_common(1)[0][0] == tool_slug:
-                mapping = f"app_name={tool_slug}"
-            elif event_slugs and event_slugs.most_common(1)[0][0] == tool_slug:
-                mapping = f"slug={tool_slug} + URL"
-            else:
-                mapping = f"URL contains /ai-tools/{tool_slug}"
 
             stage_rows.append(
                 {
@@ -724,15 +642,15 @@ def discover_ai_funnels(tools: list[dict[str, Any]]) -> dict[str, Any]:
                     "eventNames": config["events"],
                     "daily": dict(daily),
                     "total": sum(daily.values()),
-                    "mapping": mapping,
+                    "mapping": f"content_group=ai-tool:{tool_slug}",
                     "keyEventCount": int(round(key_event_count)),
                     "isRegisteredKeyEvent": key_event_count > 0,
                 }
             )
         output[tool_slug] = {
-            "start": funnel_start.isoformat(),
+            "start": START.isoformat(),
             "end": END.isoformat(),
-            "scope": f"URL contains /ai-tools/{tool_slug}",
+            "scope": f"content_group=ai-tool:{tool_slug}",
             "appName": None,
             "stages": stage_rows,
         }
@@ -741,7 +659,8 @@ def discover_ai_funnels(tools: list[dict[str, Any]]) -> dict[str, Any]:
 
 def fetch_flow(property_key: str, index: int, config: dict[str, Any]) -> dict[str, Any]:
     property_id = PROPERTIES[property_key]["id"]
-    raw_name = f"{property_key}_flow_{index:02d}_{config['slug']}"
+    version = f"_{config['cacheVersion']}" if config.get("cacheVersion") else ""
+    raw_name = f"{property_key}_flow_{index:02d}_{config['slug']}{version}"
     payloads: list[dict[str, Any]] = []
     query_error = None
     if config.get("pagePath"):
@@ -806,7 +725,7 @@ def main() -> None:
     top_tools, evidence = discover_top_tools()
     funnels = discover_ai_funnels(top_tools)
     for tool in top_tools:
-        tool["funnel7d"] = funnels.get(tool["slug"], {})
+        tool["funnel"] = funnels.get(tool["slug"], {})
     flows = {
         key: [fetch_flow(key, index, config) for index, config in enumerate(configs, start=1)]
         for key, configs in PRODUCT_FLOWS.items()
@@ -819,7 +738,7 @@ def main() -> None:
         "properties": properties,
         "aiTools": {
             "selectionWindow": {"start": START.isoformat(), "end": END.isoformat()},
-            "selectionRule": "Top 10 canonical /ai-tools/<slug> pages by GA4 page_view over 90 days; the same set is used in all windows.",
+            "selectionRule": "Top 10 exact customEvent:content_group=ai-tool:<slug> values by GA4 page_view over 90 days; the same set is used in all windows.",
             "tools": top_tools,
             "eventEvidence": evidence,
         },
@@ -833,7 +752,12 @@ def main() -> None:
                 "output": str(DATA_DIR / "dashboard.json"),
                 "generatedAt": BUILT_AT,
                 "topTools": [
-                    {"rank": tool["rank"], "slug": tool["slug"], "pageViews90d": tool["pageViewTotal90d"], "events": [event["name"] for event in tool["events"]]}
+                    {
+                        "rank": tool["rank"],
+                        "slug": tool["slug"],
+                        "pageViews90d": tool["pageViewTotal90d"],
+                        "events": [event for stage in tool["funnel"]["stages"] for event in stage["eventNames"]],
+                    }
                     for tool in top_tools
                 ],
             },

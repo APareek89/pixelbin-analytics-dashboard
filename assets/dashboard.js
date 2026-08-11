@@ -183,6 +183,10 @@ function eventTotal(event, labels) {
   return sum(seriesFromDaily(event.daily, labels));
 }
 
+function periodFunnelStages(tool, labels) {
+  return (tool.funnel?.stages || []).map((stage) => ({ ...stage, total: eventTotal(stage, labels) }));
+}
+
 function aiToolSummary(tools, labels) {
   return `<div class="card summary-wrap"><table class="summary-table"><thead><tr><th>90d rank / AI tool</th><th>Pageviews</th><th>Input</th><th>Action</th><th>Output</th><th>Event mapping</th></tr></thead><tbody>${tools.map((tool) => {
     const events = tool.events;
@@ -190,15 +194,15 @@ function aiToolSummary(tools, labels) {
   }).join("")}</tbody></table></div>`;
 }
 
-function funnelSummary(tools) {
+function funnelSummary(tools, labels) {
   return `<div class="card summary-wrap"><table class="summary-table"><thead><tr><th>90d rank / AI tool</th><th>Pageviews</th><th>Product action</th><th>Success</th><th>Gate / popup</th><th>Signup / key event</th><th>Mapping</th></tr></thead><tbody>${tools.map((tool) => {
-    const stages = tool.funnel7d?.stages || [];
+    const stages = periodFunnelStages(tool, labels);
     const traffic = stages.find((stage) => stage.kind === "traffic");
     const action = stages.find((stage) => stage.kind === "action") || stages.find((stage) => stage.kind === "input");
     const success = stages.find((stage) => stage.kind === "success");
     const gate = sum(stages.filter((stage) => stage.kind === "gate").map((stage) => stage.total));
     const downstream = sum(stages.filter((stage) => stage.kind === "cta" || stage.kind === "key").map((stage) => stage.total));
-    return `<tr><td><div class="tool-name"><span class="rank">${tool.rank}</span><div><strong>${esc(tool.name)}</strong><div class="slug">/ai-tools/${esc(tool.slug)}</div></div></div></td><td>${fmt(traffic?.total)}</td><td>${fmt(action?.total)}</td><td>${fmt(success?.total)}</td><td>${fmt(gate)}</td><td>${fmt(downstream)}</td><td><span class="chip gray">${tool.funnel7d?.appName ? `app ${esc(tool.funnel7d.appName)}` : "URL / slug"}</span></td></tr>`;
+    return `<tr><td><div class="tool-name"><span class="rank">${tool.rank}</span><div><strong>${esc(tool.name)}</strong><div class="slug">${esc(tool.contentGroup)}</div></div></div></td><td>${fmt(traffic?.total)}</td><td>${fmt(action?.total)}</td><td>${fmt(success?.total)}</td><td>${fmt(gate)}</td><td>${fmt(downstream)}</td><td><span class="chip gray">content_group</span></td></tr>`;
   }).join("")}</tbody></table></div>`;
 }
 
@@ -212,18 +216,18 @@ function toolCardHtml(tool, labels, index) {
   </article>`;
 }
 
-function funnelCardHtml(tool, index) {
-  const stages = tool.funnel7d?.stages || [];
+function funnelCardHtml(tool, index, labels) {
+  const stages = periodFunnelStages(tool, labels);
   const pageViews = stages.find((stage) => stage.kind === "traffic")?.total || 0;
   const keyEvents = sum(stages.filter((stage) => stage.kind === "key").map((stage) => stage.total));
   return `<article class="card chart-card funnel-card">
-    <div class="chart-head"><div class="chart-head-left"><p class="eyebrow">#${tool.rank} by 90-day traffic · corrected 7-day funnel</p><h3>${esc(tool.name)}</h3><div class="meta">/ai-tools/${esc(tool.slug)}</div></div><div class="chart-head-actions"><span class="chip green">${fmt(pageViews)} views</span><button class="info-button" data-funnel-index="${index}" aria-label="Show funnel event mapping">i</button></div></div>
+    <div class="chart-head"><div class="chart-head-left"><p class="eyebrow">#${tool.rank} by 90-day content-group traffic · ${WINDOW_DAYS}-day funnel</p><h3>${esc(tool.name)}</h3><div class="meta">${esc(tool.contentGroup)}</div></div><div class="chart-head-actions"><span class="chip green">${fmt(pageViews)} views</span><button class="info-button" data-funnel-index="${index}" aria-label="Show funnel event mapping">i</button></div></div>
     <div class="funnel-stage-grid">${stages.map((stage) => {
       const rate = pageViews ? (stage.total / pageViews) * 100 : 0;
       return `<div class="funnel-stage" style="--stage-color:${FUNNEL_COLORS[stage.kind] || "#6E6D74"}"><span>${esc(stage.label)}</span><strong>${fmt(stage.total)}</strong><small>${rate.toFixed(rate < 1 ? 2 : 1)}% of views</small></div>`;
     }).join("")}</div>
     <div class="canvas-wrap funnel-canvas"><canvas id="ai-funnel-${index}"></canvas></div>
-    <div class="source-note">Scoped to <code>/ai-tools/${esc(tool.slug)}</code>. ${tool.funnel7d?.appName ? `GA4 app_name=${esc(tool.funnel7d.appName)}.` : "No app_name is set on these product events."} ${keyEvents ? `${fmt(keyEvents)} USER_SIGN_UP_ATTEMPT key events observed.` : "No downstream USER_SIGN_UP_ATTEMPT key event observed."}</div>
+    <div class="source-note">Every stage uses exact <code>customEvent:content_group=${esc(tool.contentGroup)}</code>. ${keyEvents ? `${fmt(keyEvents)} USER_SIGN_UP_ATTEMPT key events observed.` : "No downstream USER_SIGN_UP_ATTEMPT key event observed."}</div>
   </article>`;
 }
 
@@ -259,43 +263,25 @@ function funnelChartOptions(stages, pageViews) {
 function renderAiTools(data, labels) {
   const panel = document.getElementById("panel-ai-tools");
   const tools = data.aiTools.tools;
-  if (WINDOW_DAYS === 7) {
-    panel.innerHTML = introHtml(
-      "Top 10 AI-tool full funnels",
-      "Corrected URL and slug-scoped funnels from page_view through generation or transformation, success, payment or signup gates, CTA clicks, and meaningful GA4 key events. app_name is used only when emitted on the event.",
-      labels,
-      `<span class="chip orange">7-day verification build</span>`,
-    ) + funnelSummary(tools) + `<div class="section-title"><div><h2>Page view to signup funnel</h2><p>Bar lengths show each stage as a percentage of the tool's page views; cards retain raw event counts.</p></div><span class="chip">10 tools · discovered events</span></div><div class="chart-grid">${tools.map((tool, index) => funnelCardHtml(tool, index)).join("")}</div>`;
-
-    tools.forEach((tool, index) => {
-      const stages = tool.funnel7d?.stages || [];
-      const pageViews = stages.find((stage) => stage.kind === "traffic")?.total || 0;
-      const percentages = stages.map((stage) => pageViews ? Math.min(100, (stage.total / pageViews) * 100) : 0);
-      charts.push(new Chart(document.getElementById(`ai-funnel-${index}`), {
-        type: "bar",
-        data: { labels: stages.map((stage) => stage.label), datasets: [{ data: percentages, backgroundColor: stages.map((stage) => FUNNEL_COLORS[stage.kind] || "#6E6D74"), borderRadius: 6, minBarLength: 3 }] },
-        options: funnelChartOptions(stages, pageViews),
-      }));
-    });
-    panel.querySelectorAll(".info-button").forEach((button) => {
-      button.addEventListener("click", () => openFunnelMapping(tools[Number(button.dataset.funnelIndex)]));
-    });
-    return;
-  }
   panel.innerHTML = introHtml(
-    "Top 10 AI tools by traffic",
-    `${esc(data.aiTools.selectionRule)} Product events were discovered from page_path, app_name and content_group evidence rather than assigned from a generic event list.`,
+    `Top 10 AI-tool ${WINDOW_DAYS}-day funnels`,
+    `${esc(data.aiTools.selectionRule)} Every traffic and downstream event uses the exact same customEvent:content_group value.`,
     labels,
-    `<span class="chip orange">Stable 90-day ranking</span>`,
-  ) + aiToolSummary(tools, labels) + `<div class="section-title"><div><h2>Tool-level traffic and product actions</h2><p>Each chart combines page views with up to three tool-specific input, action and output events.</p></div><span class="chip">10 tools · ${WINDOW_DAYS} days</span></div><div class="chart-grid">${tools.map((tool, index) => toolCardHtml(tool, labels, index)).join("")}</div>`;
+    `<span class="chip orange">Exact content_group mapping</span>`,
+  ) + funnelSummary(tools, labels) + `<div class="section-title"><div><h2>Page view to signup funnel</h2><p>Bar lengths show each stage as a percentage of the selected period's content-group page views; cards retain raw event counts.</p></div><span class="chip">10 tools · ${WINDOW_DAYS} days</span></div><div class="chart-grid">${tools.map((tool, index) => funnelCardHtml(tool, index, labels)).join("")}</div>`;
 
   tools.forEach((tool, index) => {
-    const series = [{ name: "page_view", daily: tool.pageViews }, ...tool.events].slice(0, 4);
-    const datasets = series.map((item, seriesIndex) => baseDataset(item.name, seriesFromDaily(item.daily, labels), SERIES_COLORS[seriesIndex], seriesIndex));
-    charts.push(new Chart(document.getElementById(`ai-tool-${index}`), { type: "line", data: { labels, datasets }, options: chartOptions(labels) }));
+    const stages = periodFunnelStages(tool, labels);
+    const pageViews = stages.find((stage) => stage.kind === "traffic")?.total || 0;
+    const percentages = stages.map((stage) => pageViews ? Math.min(100, (stage.total / pageViews) * 100) : 0);
+    charts.push(new Chart(document.getElementById(`ai-funnel-${index}`), {
+      type: "bar",
+      data: { labels: stages.map((stage) => stage.label), datasets: [{ data: percentages, backgroundColor: stages.map((stage) => FUNNEL_COLORS[stage.kind] || "#6E6D74"), borderRadius: 6, minBarLength: 3 }] },
+      options: funnelChartOptions(stages, pageViews),
+    }));
   });
   panel.querySelectorAll(".info-button").forEach((button) => {
-    button.addEventListener("click", () => openMapping(tools[Number(button.dataset.toolIndex)]));
+    button.addEventListener("click", () => openFunnelMapping(tools[Number(button.dataset.funnelIndex)], labels));
   });
 }
 
@@ -306,8 +292,7 @@ function flowCardHtml(flow, propertyKey, labels, index) {
 function renderFlows(data, labels, propertyKey) {
   const panel = document.getElementById(`panel-${propertyKey}`);
   const property = data.properties[propertyKey];
-  let flows = data.flows[propertyKey] || [];
-  if (propertyKey === "pixelbin" && WINDOW_DAYS !== 7) flows = flows.slice(0, 6);
+  const flows = data.flows[propertyKey] || [];
   panel.innerHTML = introHtml(
     `${property.label} product events`,
     "Established product-event flows retained from the growth dashboard and re-queried for the selected reporting window.",
@@ -328,10 +313,10 @@ function openMapping(tool) {
   document.getElementById("close-modal").onclick = () => modal.classList.remove("open");
 }
 
-function openFunnelMapping(tool) {
+function openFunnelMapping(tool, labels) {
   const modal = document.getElementById("mapping-modal");
-  const stages = tool.funnel7d?.stages || [];
-  document.getElementById("mapping-content").innerHTML = `<div class="modal-head"><div><p class="eyebrow">7-day funnel attribution</p><h3>${esc(tool.name)}</h3><div class="meta">${esc(tool.funnel7d?.scope || `/ai-tools/${tool.slug}`)}</div></div><button class="close-button" id="close-modal">Close</button></div><ul class="mapping-list">${stages.map((stage) => `<li><span class="chip ${stage.kind === "success" ? "green" : stage.kind === "gate" ? "orange" : "gray"}">${esc(stage.label)}</span><code>${esc(stage.eventNames.join(" + "))}</code><span>${esc(stage.mapping)}${stage.isRegisteredKeyEvent ? " · key event" : ""}</span></li>`).join("")}</ul><div class="path-box">app_name: ${tool.funnel7d?.appName ? esc(tool.funnel7d.appName) : "not set"}\nScope: ${esc(tool.funnel7d?.scope)}\nWindow: ${esc(tool.funnel7d?.start)} to ${esc(tool.funnel7d?.end)}</div><p class="source-note">Event names and mappings were discovered from GA4 dimensions pagePath, customEvent:slug and customEvent:app_name. No Console app_name event family is substituted for an AI-tool URL.</p>`;
+  const stages = periodFunnelStages(tool, labels);
+  document.getElementById("mapping-content").innerHTML = `<div class="modal-head"><div><p class="eyebrow">${WINDOW_DAYS}-day funnel attribution</p><h3>${esc(tool.name)}</h3><div class="meta">${esc(tool.contentGroup)}</div></div><button class="close-button" id="close-modal">Close</button></div><ul class="mapping-list">${stages.map((stage) => `<li><span class="chip ${stage.kind === "success" ? "green" : stage.kind === "gate" ? "orange" : "gray"}">${esc(stage.label)}</span><code>${esc(stage.eventNames.join(" + "))}</code><span>${esc(stage.mapping)}${stage.isRegisteredKeyEvent ? " · key event" : ""}</span></li>`).join("")}</ul><div class="path-box">Dimension: customEvent:content_group\nExact value: ${esc(tool.contentGroup)}\nWindow: ${esc(labels[0])} to ${esc(labels.at(-1))}</div><p class="source-note">Every AI-tool stage, including <code>page_view</code>, is filtered by the same exact content group. Pixelbin Console product charts use exact <code>customEvent:app_name</code> where the app emits it.</p>`;
   modal.classList.add("open");
   document.getElementById("close-modal").onclick = () => modal.classList.remove("open");
 }

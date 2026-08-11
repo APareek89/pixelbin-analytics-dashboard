@@ -12,7 +12,7 @@ import re
 import select
 import subprocess
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -56,7 +56,7 @@ PRODUCT_FLOWS = {
             "name": "Marketing Studio",
             "slug": "marketing-studio",
             "events": ["page_view", "MARKETING_STUDIO_GENERATE_CLICKED", "MARKETING_STUDIO_VIDEO_GENERATED", "MARKETING_STUDIO_VIDEO_FAILED"],
-            "filter": ("customEvent:app_name", "marketing-studio"),
+            "pagePath": "studio/marketing-studio",
         },
         {
             "name": "Dynamic Image Apps",
@@ -67,6 +67,51 @@ PRODUCT_FLOWS = {
             "name": "Dynamic Video Apps",
             "slug": "dynamic-video-apps",
             "events": ["DYNAMIC_APP_FILE_UPLOAD_SUCCESS", "DYNAMIC_APP_VIDEO_GENERATION_CLICKED", "DYNAMIC_APP_VIDEO_GENERATED", "DYNAMIC_APP_VIDEO_FAILED"],
+        },
+        {
+            "name": "Img-to-Img Playground",
+            "slug": "img-to-img",
+            "events": ["IMG_TO_IMG_PAGE_VIEW", "IMG_TO_IMG_GENERATE_CLICKED", "IMG_TO_IMG_TRANSFORMATION_SUCCESS", "IMG_TO_IMG_TRANSFORMATION_FAILED"],
+        },
+        {
+            "name": "Mini Studio",
+            "slug": "mini-studio",
+            "events": ["page_view", "APPLY_TRANSFORMATION_CLICK", "DOWNLOAD_SINGLE", "VALIDATION_ERROR"],
+            "filter": ("contentGroup", "mini-studio"),
+        },
+        {
+            "name": "AI Editor (Magic Studio)",
+            "slug": "ai-editor",
+            "events": ["page_view", "AI_EDITOR_TOOL_APPLY", "DOWNLOAD_SINGLE", "EXPORT_SHARE_FAILED"],
+            "filter": ("contentGroup", "ai-editor"),
+        },
+        {
+            "name": "Magic Canvas",
+            "slug": "magic-canvas",
+            "events": ["page_view", "GENERATION_STARTED", "GENERATION_COMPLETED", "GENERATION_FAILED"],
+            "filter": ("customEvent:app_name", "magic-canvas"),
+        },
+        {
+            "name": "Batch Editor",
+            "slug": "batch-editor",
+            "events": ["page_view", "IMAGE_UPLOADED", "PAYMENT_POP_UP"],
+            "filter": ("customEvent:app_name", "batch-editor"),
+        },
+        {
+            "name": "AI Influencer",
+            "slug": "ai-influencer",
+            "events": ["page_view", "GENERATION_STARTED", "GENERATION_COMPLETED", "GENERATION_FAILED"],
+            "filter": ("customEvent:app_name", "ai-influencer"),
+        },
+        {
+            "name": "Free Watermark Remover",
+            "slug": "free-watermark-remover",
+            "events": ["IMG_FREE_PROPERTY_WM_PAGE_VIEW", "IMG_FREE_PROPERTY_WM_IMAGE_UPLOADED", "IMG_FREE_PROPERTY_WM_TRANSFORMATION_SUCC", "IMG_FREE_PROPERTY_WM_TRANSFORMATION_FAIL"],
+        },
+        {
+            "name": "Free Image Upscaler",
+            "slug": "free-image-upscaler",
+            "events": ["IMG_FREE_PROPERTY_US_PAGE_VIEW", "IMG_FREE_PROPERTY_US_IMAGE_UPLOADED", "IMG_FREE_PROPERTY_US_TRANSFORMATION_SUCC", "IMG_FREE_PROPERTY_US_TRANSFORMATION_FAIL"],
         },
     ],
     "wm": [
@@ -92,6 +137,91 @@ PRODUCT_FLOWS = {
             "slug": "upload-health",
             "events": ["IMAGE_UPLOAD_ATTEMPT", "IMAGE_UPLOADED", "IMAGE_UPLOAD_FAILED", "IMAGE_TRANSFORMATION_FAILED"],
         },
+    ],
+}
+
+
+AI_FUNNEL_MAP = {
+    "video-generator": [
+        {"label": "Page view", "events": ["page_view"], "kind": "traffic"},
+        {"label": "Generate clicked", "events": ["DYNAMIC_APP_VIDEO_GENERATION_CLICKED"], "kind": "action"},
+        {"label": "Video generated", "events": ["DYNAMIC_APP_VIDEO_GENERATED"], "kind": "success"},
+        {"label": "Limit gate", "events": ["DYNAMIC_APP_DAILY_LIMIT_EXCEEDED", "DYNAMIC_APP_VIDEO_LIMIT_REACHED"], "kind": "gate"},
+        {"label": "Sign-up attempt", "events": ["USER_SIGN_UP_ATTEMPT"], "kind": "key"},
+    ],
+    "watermark-remover": [
+        {"label": "Page view", "events": ["page_view"], "kind": "traffic"},
+        {"label": "Image uploaded", "events": ["IMG_FREE_PROPERTY_WM_IMAGE_UPLOADED"], "kind": "input"},
+        {"label": "Transform success", "events": ["IMG_FREE_PROPERTY_WM_TRANSFORMATION_SUCC"], "kind": "success"},
+        {"label": "Free-trial limit", "events": ["IMG_FREE_PROPERTY_WM_FREE_TRIAL_LIMIT_RE"], "kind": "gate"},
+        {"label": "Sign-up attempt", "events": ["USER_SIGN_UP_ATTEMPT"], "kind": "key"},
+    ],
+    "image-upscaler": [
+        {"label": "Page view", "events": ["page_view"], "kind": "traffic"},
+        {"label": "Image uploaded", "events": ["IMG_FREE_PROPERTY_US_IMAGE_UPLOADED"], "kind": "input"},
+        {"label": "Transform success", "events": ["IMG_FREE_PROPERTY_US_TRANSFORMATION_SUCC"], "kind": "success"},
+        {"label": "Free-trial limit", "events": ["IMG_FREE_PROPERTY_US_FREE_TRIAL_LIMIT_RE"], "kind": "gate"},
+        {"label": "Sign-up attempt", "events": ["USER_SIGN_UP_ATTEMPT"], "kind": "key"},
+    ],
+    "video-watermark-remover": [
+        {"label": "Page view", "events": ["page_view"], "kind": "traffic"},
+        {"label": "File upload", "events": ["DYNAMIC_APP_FILE_UPLOAD_SUCCESS"], "kind": "input"},
+        {"label": "Transform started", "events": ["DYNAMIC_APP_TRANSFORMATION_TRIGGERED"], "kind": "action"},
+        {"label": "Transform success", "events": ["DYNAMIC_APP_TRANSFORMATION_POLLING_SUCCE"], "kind": "success"},
+        {"label": "Payment popup", "events": ["DYNAMIC_APP_PAYMENT_TRIGGERED"], "kind": "gate"},
+        {"label": "Sign-up popup", "events": ["DYNAMIC_APP_SIGNUP_TRIGGERED"], "kind": "gate"},
+        {"label": "Sign-up attempt", "events": ["USER_SIGN_UP_ATTEMPT"], "kind": "key"},
+    ],
+    "emoji-remover": [
+        {"label": "Page view", "events": ["page_view"], "kind": "traffic"},
+        {"label": "Image uploaded", "events": ["IMG_TO_IMG_IMAGE_UPLOADED"], "kind": "input"},
+        {"label": "Generate clicked", "events": ["IMG_TO_IMG_GENERATE_CLICKED"], "kind": "action"},
+        {"label": "Transform success", "events": ["IMG_TO_IMG_TRANSFORMATION_SUCCESS"], "kind": "success"},
+        {"label": "Free-trial limit", "events": ["IMG_TO_IMG_FREE_TRIAL_LIMIT_REACHED"], "kind": "gate"},
+        {"label": "Signup CTA", "events": ["IMG_TO_IMG_FREE_TRIAL_SIGNUP_CLICKED", "IMG_TO_IMG_PREMIUM_SIGNUP_CLICKED"], "kind": "cta"},
+        {"label": "Sign-up attempt", "events": ["USER_SIGN_UP_ATTEMPT"], "kind": "key"},
+    ],
+    "unblur-image": [
+        {"label": "Page view", "events": ["page_view"], "kind": "traffic"},
+        {"label": "Image uploaded", "events": ["IMG_TO_IMG_IMAGE_UPLOADED"], "kind": "input"},
+        {"label": "Generate clicked", "events": ["IMG_TO_IMG_GENERATE_CLICKED"], "kind": "action"},
+        {"label": "Transform success", "events": ["IMG_TO_IMG_TRANSFORMATION_SUCCESS"], "kind": "success"},
+        {"label": "Free-trial limit", "events": ["IMG_TO_IMG_FREE_TRIAL_LIMIT_REACHED"], "kind": "gate"},
+        {"label": "Signup CTA", "events": ["IMG_TO_IMG_FREE_TRIAL_SIGNUP_CLICKED", "IMG_TO_IMG_PREMIUM_SIGNUP_CLICKED"], "kind": "cta"},
+        {"label": "Sign-up attempt", "events": ["USER_SIGN_UP_ATTEMPT"], "kind": "key"},
+    ],
+    "ai-image-generator": [
+        {"label": "Page view", "events": ["page_view"], "kind": "traffic"},
+        {"label": "Generate clicked", "events": ["IMG_TO_IMG_GENERATE_CLICKED"], "kind": "action"},
+        {"label": "Transform success", "events": ["IMG_TO_IMG_TRANSFORMATION_SUCCESS"], "kind": "success"},
+        {"label": "Free-trial limit", "events": ["IMG_TO_IMG_FREE_TRIAL_LIMIT_REACHED"], "kind": "gate"},
+        {"label": "Signup CTA", "events": ["IMG_TO_IMG_FREE_TRIAL_SIGNUP_CLICKED", "IMG_TO_IMG_PREMIUM_SIGNUP_CLICKED"], "kind": "cta"},
+        {"label": "Sign-up attempt", "events": ["USER_SIGN_UP_ATTEMPT"], "kind": "key"},
+    ],
+    "old-photo-restoration": [
+        {"label": "Page view", "events": ["page_view"], "kind": "traffic"},
+        {"label": "Image uploaded", "events": ["IMG_TO_IMG_IMAGE_UPLOADED"], "kind": "input"},
+        {"label": "Generate clicked", "events": ["IMG_TO_IMG_GENERATE_CLICKED"], "kind": "action"},
+        {"label": "Transform success", "events": ["IMG_TO_IMG_TRANSFORMATION_SUCCESS"], "kind": "success"},
+        {"label": "Free-trial limit", "events": ["IMG_TO_IMG_FREE_TRIAL_LIMIT_REACHED"], "kind": "gate"},
+        {"label": "Signup CTA", "events": ["IMG_TO_IMG_FREE_TRIAL_SIGNUP_CLICKED", "IMG_TO_IMG_PREMIUM_SIGNUP_CLICKED"], "kind": "cta"},
+        {"label": "Sign-up attempt", "events": ["USER_SIGN_UP_ATTEMPT"], "kind": "key"},
+    ],
+    "image-editor": [
+        {"label": "Page view", "events": ["page_view"], "kind": "traffic"},
+        {"label": "Image uploaded", "events": ["IMG_TO_IMG_IMAGE_UPLOADED"], "kind": "input"},
+        {"label": "Generate clicked", "events": ["IMG_TO_IMG_GENERATE_CLICKED"], "kind": "action"},
+        {"label": "Transform success", "events": ["IMG_TO_IMG_TRANSFORMATION_SUCCESS"], "kind": "success"},
+        {"label": "Free-trial limit", "events": ["IMG_TO_IMG_FREE_TRIAL_LIMIT_REACHED"], "kind": "gate"},
+        {"label": "Signup CTA", "events": ["IMG_TO_IMG_FREE_TRIAL_SIGNUP_CLICKED", "IMG_TO_IMG_PREMIUM_SIGNUP_CLICKED"], "kind": "cta"},
+        {"label": "Sign-up attempt", "events": ["USER_SIGN_UP_ATTEMPT"], "kind": "key"},
+    ],
+    "hd-photo-converter": [
+        {"label": "Page view", "events": ["page_view"], "kind": "traffic"},
+        {"label": "Image uploaded", "events": ["IMG_FREE_PROPERTY_US_IMAGE_UPLOADED"], "kind": "input"},
+        {"label": "Transform success", "events": ["IMG_FREE_PROPERTY_US_TRANSFORMATION_SUCC"], "kind": "success"},
+        {"label": "Free-trial limit", "events": ["IMG_FREE_PROPERTY_US_FREE_TRIAL_LIMIT_RE"], "kind": "gate"},
+        {"label": "Sign-up attempt", "events": ["USER_SIGN_UP_ATTEMPT"], "kind": "key"},
     ],
 }
 
@@ -248,10 +378,12 @@ def report(
     metrics: list[str],
     dimension_filter: dict[str, Any] | None = None,
     limit: int = 250000,
+    start_date: dt.date = START,
+    end_date: dt.date = END,
 ) -> dict[str, Any]:
     arguments: dict[str, Any] = {
         "property_id": property_id,
-        "date_ranges": [{"start_date": START.isoformat(), "end_date": END.isoformat()}],
+        "date_ranges": [{"start_date": start_date.isoformat(), "end_date": end_date.isoformat()}],
         "dimensions": dimensions,
         "metrics": metrics,
         "limit": limit,
@@ -296,11 +428,20 @@ def cached_report(
     dimensions: list[str],
     metrics: list[str],
     dimension_filter: dict[str, Any] | None = None,
+    start_date: dt.date = START,
+    end_date: dt.date = END,
 ) -> dict[str, Any]:
     path = RAW_DIR / f"{name}.json"
     if path.exists():
         return json.loads(path.read_text())
-    payload = report(property_id, dimensions, metrics, dimension_filter)
+    payload = report(
+        property_id,
+        dimensions,
+        metrics,
+        dimension_filter,
+        start_date=start_date,
+        end_date=end_date,
+    )
     write_raw(name, payload)
     return payload
 
@@ -509,31 +650,148 @@ def discover_top_tools() -> tuple[list[dict[str, Any]], dict[str, Any]]:
     return tools, evidence
 
 
+def discover_ai_funnels(tools: list[dict[str, Any]]) -> dict[str, Any]:
+    funnel_start = END - dt.timedelta(days=6)
+    raw_name = f"ai_tools_funnel_7d_{END.isoformat()}"
+    payload = cached_report(
+        raw_name,
+        PROPERTIES["pixelbin"]["id"],
+        ["date", "pagePath", "eventName", "customEvent:app_name", "customEvent:slug"],
+        ["eventCount", "keyEvents", "totalUsers"],
+        contains("pagePath", "/ai-tools/"),
+        start_date=funnel_start,
+        end_date=END,
+    )
+
+    observed: dict[str, dict[str, dict[str, Any]]] = defaultdict(
+        lambda: defaultdict(
+            lambda: {
+                "daily": defaultdict(int),
+                "keyEvents": 0.0,
+                "appNames": Counter(),
+                "slugs": Counter(),
+            }
+        )
+    )
+    for item in rows(payload):
+        tool_slug = canonical_tool(item.get("pagePath", ""))
+        if not tool_slug or tool_slug not in AI_FUNNEL_MAP:
+            continue
+        event_name = item.get("eventName", "")
+        event = observed[tool_slug][event_name]
+        count = int(number(item.get("eventCount")))
+        event["daily"][normalize_date(item.get("date", ""))] += count
+        event["keyEvents"] += number(item.get("keyEvents"))
+        app_name = item.get("customEvent:app_name", "")
+        event_slug = item.get("customEvent:slug", "")
+        if app_name not in ("", "(not set)"):
+            event["appNames"][app_name] += count
+        if event_slug not in ("", "(not set)"):
+            event["slugs"][event_slug] += count
+
+    output: dict[str, Any] = {}
+    for tool in tools:
+        tool_slug = tool["slug"]
+        stage_rows = []
+        for config in AI_FUNNEL_MAP.get(tool_slug, []):
+            daily: dict[str, int] = defaultdict(int)
+            app_names: Counter[str] = Counter()
+            event_slugs: Counter[str] = Counter()
+            key_event_count = 0.0
+            for event_name in config["events"]:
+                event = observed[tool_slug].get(event_name)
+                if not event:
+                    continue
+                for day, count in event["daily"].items():
+                    daily[day] += count
+                app_names.update(event["appNames"])
+                event_slugs.update(event["slugs"])
+                key_event_count += event["keyEvents"]
+
+            if config["kind"] == "traffic":
+                mapping = f"URL contains /ai-tools/{tool_slug}"
+            elif app_names and app_names.most_common(1)[0][0] == tool_slug:
+                mapping = f"app_name={tool_slug}"
+            elif event_slugs and event_slugs.most_common(1)[0][0] == tool_slug:
+                mapping = f"slug={tool_slug} + URL"
+            else:
+                mapping = f"URL contains /ai-tools/{tool_slug}"
+
+            stage_rows.append(
+                {
+                    "label": config["label"],
+                    "kind": config["kind"],
+                    "eventNames": config["events"],
+                    "daily": dict(daily),
+                    "total": sum(daily.values()),
+                    "mapping": mapping,
+                    "keyEventCount": int(round(key_event_count)),
+                    "isRegisteredKeyEvent": key_event_count > 0,
+                }
+            )
+        output[tool_slug] = {
+            "start": funnel_start.isoformat(),
+            "end": END.isoformat(),
+            "scope": f"URL contains /ai-tools/{tool_slug}",
+            "appName": None,
+            "stages": stage_rows,
+        }
+    return output
+
+
 def fetch_flow(property_key: str, index: int, config: dict[str, Any]) -> dict[str, Any]:
     property_id = PROPERTIES[property_key]["id"]
-    event_filter = in_list("eventName", config["events"])
-    if config.get("filter"):
-        field, value = config["filter"]
-        event_filter = and_filter(event_filter, exact(field, value))
     raw_name = f"{property_key}_flow_{index:02d}_{config['slug']}"
-    try:
-        payload = cached_report(raw_name, property_id, ["date", "eventName"], ["eventCount"], event_filter)
-        query_error = None
-    except Exception as error:
-        query_error = str(error)
-        payload = {"error": query_error, "rows": []}
-        write_raw(raw_name, payload)
+    payloads: list[dict[str, Any]] = []
+    query_error = None
+    if config.get("pagePath"):
+        try:
+            page_payload = cached_report(
+                f"{raw_name}_page",
+                property_id,
+                ["date", "eventName"],
+                ["eventCount"],
+                and_filter(exact("eventName", "page_view"), contains("pagePath", config["pagePath"])),
+            )
+            action_payload = cached_report(
+                f"{raw_name}_actions",
+                property_id,
+                ["date", "eventName"],
+                ["eventCount"],
+                in_list("eventName", [event for event in config["events"] if event != "page_view"]),
+            )
+            payloads = [page_payload, action_payload]
+        except Exception as error:
+            query_error = str(error)
+    else:
+        event_filter = in_list("eventName", config["events"])
+        if config.get("filter"):
+            field, value = config["filter"]
+            event_filter = and_filter(event_filter, exact(field, value))
+        try:
+            payloads = [cached_report(raw_name, property_id, ["date", "eventName"], ["eventCount"], event_filter)]
+        except Exception as error:
+            query_error = str(error)
+
+    if query_error and not payloads:
+        payloads = [{"error": query_error, "rows": []}]
     daily: dict[str, dict[str, int]] = {event: {} for event in config["events"]}
-    for item in rows(payload):
-        event = item.get("eventName", "")
-        if event in daily:
-            daily[event][normalize_date(item.get("date", ""))] = int(number(item.get("eventCount")))
+    for payload in payloads:
+        for item in rows(payload):
+            event = item.get("eventName", "")
+            if event in daily:
+                day = normalize_date(item.get("date", ""))
+                daily[event][day] = daily[event].get(day, 0) + int(number(item.get("eventCount")))
     return {
         "name": config["name"],
         "slug": config["slug"],
         "events": [{"name": event, "daily": daily[event], "total90d": sum(daily[event].values())} for event in config["events"]],
         "scope": (
-            f"{config['filter'][0]}={config['filter'][1]}" if config.get("filter") else "eventName totals"
+            f"pagePath contains {config['pagePath']}; action event totals"
+            if config.get("pagePath")
+            else f"{config['filter'][0]}={config['filter'][1]}"
+            if config.get("filter")
+            else "eventName totals"
         ),
         "queryError": query_error,
     }
@@ -546,6 +804,9 @@ def main() -> None:
         for key, config in PROPERTIES.items()
     }
     top_tools, evidence = discover_top_tools()
+    funnels = discover_ai_funnels(top_tools)
+    for tool in top_tools:
+        tool["funnel7d"] = funnels.get(tool["slug"], {})
     flows = {
         key: [fetch_flow(key, index, config) for index, config in enumerate(configs, start=1)]
         for key, configs in PRODUCT_FLOWS.items()

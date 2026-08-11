@@ -151,6 +151,13 @@ a { color: inherit; }
 .mini-kpi span { display: block; overflow: hidden; color: var(--pb-sub); font-size: 8px; font-weight: 800; letter-spacing: 0.03em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
 .mini-kpi strong { display: block; margin-top: 3px; color: var(--series-color); font-size: 13px; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .canvas-wrap { height: 270px; }
+.funnel-card { border-top: 3px solid var(--pb-primary); }
+.funnel-stage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 6px; margin-bottom: 10px; }
+.funnel-stage { min-width: 0; padding: 8px 9px; border: 1px solid var(--pb-line); border-top: 3px solid var(--stage-color); border-radius: 9px; background: var(--pb-bg-soft); }
+.funnel-stage span { display: block; overflow: hidden; color: var(--pb-sub); font-size: 8px; font-weight: 800; letter-spacing: 0.03em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.funnel-stage strong { display: block; margin-top: 4px; color: var(--stage-color); font-size: 14px; font-variant-numeric: tabular-nums; }
+.funnel-stage small { display: block; margin-top: 2px; color: var(--pb-sub); font-size: 8px; white-space: nowrap; }
+.funnel-canvas { height: 300px; }
 .source-note { min-height: 30px; margin: 9px 1px 0; color: var(--pb-sub); font-size: 9px; line-height: 1.5; }
 .empty-note { padding: 42px 20px; color: var(--pb-sub); text-align: center; font-size: 11px; }
 
@@ -161,8 +168,9 @@ a { color: inherit; }
 .modal h3 { margin: 3px 0 0; font-size: 18px; }
 .close-button { border: 1px solid var(--pb-line); border-radius: 8px; padding: 7px 10px; color: var(--pb-sub); background: var(--pb-bg-soft); cursor: pointer; font-size: 11px; font-weight: 700; }
 .mapping-list { margin: 16px 0 0; padding: 0; list-style: none; }
-.mapping-list li { display: grid; grid-template-columns: 80px 1fr auto; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--pb-line); font-size: 11px; }
-.mapping-list code { color: var(--pb-heading); overflow-wrap: anywhere; }
+.mapping-list li { display: grid; grid-template-columns: 120px minmax(0, 1fr); align-items: start; gap: 6px 10px; padding: 10px 0; border-bottom: 1px solid var(--pb-line); font-size: 11px; }
+.mapping-list li > :last-child:not(:nth-child(2)) { grid-column: 2; color: var(--pb-sub); font-size: 10px; }
+.mapping-list code { color: var(--pb-heading); white-space: normal; overflow-wrap: anywhere; }
 .path-box { margin-top: 14px; padding: 12px; border-radius: 9px; color: var(--pb-sub); background: var(--pb-bg-soft); font: 10px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
 
 footer { padding: 25px 0 4px; color: var(--pb-sub); text-align: center; font-size: 10px; }
@@ -190,6 +198,8 @@ footer { padding: 25px 0 4px; color: var(--pb-sub); text-align: center; font-siz
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .kpi:last-child { grid-column: span 2; }
   .mini-kpis { grid-template-columns: repeat(2, 1fr); }
+  .funnel-stage-grid { grid-template-columns: repeat(2, 1fr); }
   .canvas-wrap { height: 250px; }
+  .funnel-canvas { height: 310px; }
   .chart-head-actions .chip { display: none; }
 }
